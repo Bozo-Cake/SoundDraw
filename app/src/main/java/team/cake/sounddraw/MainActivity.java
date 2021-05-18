@@ -5,6 +5,7 @@ import androidx.constraintlayout.widget.ConstraintSet;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        final String TAG = "MAIN";
         touching = false;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
             final float x = event.getX();
             final float y = event.getY();
             wave.put(x,y);
+            //Log.d(TAG, x + ", " + y);
             float lastXAxis = x;
             float lastYAxis = y;
             E1.setText(Float.toString(lastXAxis));
