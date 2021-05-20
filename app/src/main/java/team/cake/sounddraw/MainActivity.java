@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint({"DefaultLocale", "SetTextI18n"})
     private boolean onTouch(View v, MotionEvent event) {
+        //https://developer.android.com/reference/android/view/MotionEvent
         if (event.getAction() == MotionEvent.ACTION_UP) {
             evaluateHistory();
         }
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         //ToDo: if(x > lastX) -> use two individual vectors?
+        //https://www.javatpoint.com/collections-in-java
         //Save Everything
         for(int i = 0; i < event.getHistorySize(); i++) {
             wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
