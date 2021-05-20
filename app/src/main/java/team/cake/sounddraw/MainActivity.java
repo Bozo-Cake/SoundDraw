@@ -47,7 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean onTouch(View v, MotionEvent event) {
         //https://developer.android.com/reference/android/view/MotionEvent
         if (event.getAction() == MotionEvent.ACTION_UP) {
-            evaluateHistory();
+            increaseResolution();
+            drawLine();
         }
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             T.setText(R.string.pressed);
@@ -94,7 +95,10 @@ public class MainActivity extends AppCompatActivity {
         E2.setText(Float.toString(y));
         return true;
     }
-    void evaluateHistory() {
+    void increaseResolution() {
+        return;
+    }
+    void drawLine() {
         T.setText(String.format("%s%d", getString(R.string.touchToBegin), wave.size()));
         DrawView dv = new DrawView(this, wave);
         dv.setBackgroundColor(Color.WHITE);
