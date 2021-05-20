@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SoundDraw</string>
+    <string name="pressed">Pressed</string>
+    <string name="touchToBegin">Released: Touch to get co-ordinates\n</string>
 </resources>
