@@ -2,6 +2,9 @@ package team.cake.sounddraw;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Build;
 import android.os.Build.VERSION;
 import android.os.Bundle;
@@ -14,6 +17,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.HashMap;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     TextView T;
@@ -65,17 +69,7 @@ public class MainActivity extends AppCompatActivity {
             diffY = y - lY;
             Log.d(TAG,String.format("Diff X:Y -> %f:%f", diffX,diffY));
         }
-
-        //ToDo: if(x > lastX)
-        //Save Everything
-        for(int i = 0; i < event.getHistorySize(); i++) {
-            wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
-        }//Skipped if only one
-        wave.put(x, y);//ensure at least one is added
-
-        //Calculate Resolution
-
-        //Log.d(TAG, diffX + ":" + diffY);
+        //Vibrate if moving too fast
         if (diffX > threshy) {
             if (VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(VibrationEffect.createOneShot(vibrateTime, VibrationEffect.DEFAULT_AMPLITUDE));
@@ -84,13 +78,45 @@ public class MainActivity extends AppCompatActivity {
                 vibrator.vibrate(vibrateTime);
             }
         }
+        //ToDo: if(x > lastX) -> use two individual vectors?
+        //Save Everything
+        for(int i = 0; i < event.getHistorySize(); i++) {
+            wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
+        }//Skipped if only one
+        wave.put(x, y);//ensure at least one is added
 
-        //Log.d(TAG, x + ", " + y);
+
+        //Copy log into text editor, save as csv, open in Excel, delete first column.
+        //Log.d(TAG, "," + x + "," + y);
         E1.setText(Float.toString(x));
         E2.setText(Float.toString(y));
         return true;
     }
     void evaluateHistory() {
         T.setText(String.format("%s%d", getString(R.string.touchToBegin), wave.size()));
+        DrawView dv = new DrawView(this, wave);
+        dv.setBackgroundColor(Color.WHITE);
+        setContentView(dv);
+    }
+}
+class DrawView extends View {
+    Paint paint;
+    HashMap<Float, Float> _coords;
+    public DrawView (Context context, HashMap<Float, Float> coords) {
+        super(context);
+        _coords = new HashMap<>(coords);
+        paint = new Paint();
+        paint.setColor(Color.BLUE);
+    }
+    public void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        Set<Float> keys = _coords.keySet();
+        float[] lines = new float[keys.size() * 2];
+        int pos = 0;
+        for (Float i : keys) {
+            lines[pos++] = i;
+            lines[pos++] = _coords.get(i);
+        }
+        canvas.drawLines(lines, paint);
     }
 }
