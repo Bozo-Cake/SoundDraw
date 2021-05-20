@@ -55,45 +55,49 @@ public class MainActivity extends AppCompatActivity {
             wave = new HashMap<Float, Float>();
             wave.put(0f, 0f);
         }
-        final float x = event.getX();
-        final float y = event.getY();
-        float diffX = 0;
-        float diffY = 0;
-        int sz = event.getHistorySize();
-        Log.d(TAG, String.valueOf(sz));
-        //A motion event seems to have 0 - 4 coordinates in each.
+        if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            final float x = event.getX();
+            final float y = event.getY();
+            float diffX = 0;
+            float diffY = 0;
+            int sz = event.getHistorySize();
+            Log.d(TAG, String.valueOf(sz));
+            //A motion event seems to have 0 - 4 coordinates in each.
 
-        //MakeShift: Only triggers if moving fast enough to record a few coordinates per event
-        if (sz > 1) {
-            float lX = event.getHistoricalX(sz - 1);
-            float lY = event.getHistoricalY(sz - 1);
-            diffX = x - lX;
-            diffY = y - lY;
-            Log.d(TAG,String.format("Diff X:Y -> %f:%f", diffX,diffY));
-        }
-        //Vibrate if moving too fast
-        if (diffX > threshy) {
-            if (VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(vibrateTime, VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                //Depreciated in API 26
-                vibrator.vibrate(vibrateTime);
+            //MakeShift: Only triggers if moving fast enough to record a few coordinates per event
+            if (sz > 1) {
+                float lX = event.getHistoricalX(sz - 1);
+                float lY = event.getHistoricalY(sz - 1);
+                diffX = x - lX;
+                diffY = y - lY;
+                Log.d(TAG,String.format("Diff X:Y -> %f:%f", diffX,diffY));
             }
+            //Vibrate if moving too fast
+            if (diffX > threshy) {
+                if (VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(vibrateTime, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    //Depreciated in API 26
+                    vibrator.vibrate(vibrateTime);
+                }
+            }
+            //ToDo: if(x > lastX) -> use two individual vectors?
+            //https://www.javatpoint.com/collections-in-java
+            //Save Everything
+            for(int i = 0; i < event.getHistorySize(); i++) {
+                wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
+            }//Skipped if only one
+            wave.put(x, y);//ensure at least one is added
+
+
+            //Copy log into text editor, save as csv, open in Excel, delete first column.
+            //Log.d(TAG, "," + x + "," + y);
+            E1.setText(Float.toString(x));
+            E2.setText(Float.toString(y));
+            return true;
         }
-        //ToDo: if(x > lastX) -> use two individual vectors?
-        //https://www.javatpoint.com/collections-in-java
-        //Save Everything
-        for(int i = 0; i < event.getHistorySize(); i++) {
-            wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
-        }//Skipped if only one
-        wave.put(x, y);//ensure at least one is added
 
-
-        //Copy log into text editor, save as csv, open in Excel, delete first column.
-        //Log.d(TAG, "," + x + "," + y);
-        E1.setText(Float.toString(x));
-        E2.setText(Float.toString(y));
-        return true;
+        return false;
     }
     void increaseResolution() {
         return;
