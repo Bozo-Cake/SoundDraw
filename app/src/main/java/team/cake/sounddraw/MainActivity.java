@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     EditText E1, E2;
 
     final String TAG = "MAIN";//For Logs
-    final float vibThresh = 6f;
+    final float vibThresh = 10f;
     final int vibrateTime = 100;//ms
     Vibrator vibrator;
     ArrayList<Float> xWave;
@@ -58,51 +58,74 @@ public class MainActivity extends AppCompatActivity {
             //wave.put(0f, 0f);
             xWave = new ArrayList<>();
             yWave = new ArrayList<>();
+            xWave.add(event.getX());
+            yWave.add(event.getY());
         }
         //OnMove
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             //A motion event seems to have 0 - 4 coordinates in each.
             Float lastX = event.getX();
             Float lastY = event.getY();
-            Float prevX = lastX;
-            Float prevY = lastY;
+            //If prev* don't update, you'll see a line from top corner to first touch.
+            Float prevX = 0f;
+            Float prevY = 0f;
+            float diffX;
+            float diffY;
             int waveSize = xWave.size();
-            if(waveSize > 0) {
+            //Update prev* values after at least one entry is saved.
+            if(waveSize > 0) {//Should always be true because first entry is saved in OnTouch
                 prevX = xWave.get(waveSize - 1);
                 prevY = yWave.get(waveSize - 1);
             }
-            else {
-                prevX = lastX;
-                prevY = lastY;
-            }
-            float diffX = lastX - prevX;
-            //If drawing backtracks: Can't do this for sound waves.
-            if (diffX < 0) {
-                lastX = prevX;
-            }
-            //Save Everything
+
             int sz = event.getHistorySize();
+            //Save Everything
+            boolean tooFast = false;
             for(int i = 0; i < sz; i++) {
-                //If drawing backtracks: Can't do this for sound waves.
                 float x = event.getHistoricalX(i);
                 float y = event.getHistoricalY(i);
+
+                diffX = x - prevX;
+                //If drawing backtracks, keep largest X value for each new Y
+                //Sound Waves must pass vertical line test
                 if (diffX < 0) {
-                    lastX = prevX;
+                    x = prevX;
+                    y = prevY;
                 }
-                xWave.add(event.getHistoricalX(i));
-                yWave.add(event.getHistoricalY(i));
+                else {
+                    xWave.add(x);
+                    yWave.add(y);
+                }
+                if (diffX > vibThresh) {
+                    tooFast = true;
+                }
+
+                prevX = x;
+                prevY = y;
             }//Skips the last one; manually add the last one.
-            xWave.add(lastX);
-            yWave.add(lastY);
+            //No Backtracking
+            diffX = lastX - prevX;
+            if (diffX < 0) {
+                lastX = prevX;
+                lastY = prevY;
+            }
+            else {
+                xWave.add(lastX);
+                yWave.add(lastY);
+            }
+            if(diffX > vibThresh) {
+                tooFast = true;
+            }
 
             //Vibrate if moving too fast
-            if (diffX > vibThresh) {
+            if (tooFast) {
                 if (VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(vibrateTime, VibrationEffect.DEFAULT_AMPLITUDE));
                 } else {
                     //Depreciated in API 26
                     vibrator.vibrate(vibrateTime);
                 }
+                tooFast = false;
             }
 
             E1.setText(Float.toString(lastX));
@@ -121,28 +144,5 @@ public class MainActivity extends AppCompatActivity {
         DrawView dv = new DrawView(this, xWave, yWave);
         dv.setBackgroundColor(Color.WHITE);
         setContentView(dv);
-    }
-}
-//https://stackoverflow.com/questions/13851728/android-how-to-draw-on-view
-class DrawView extends View {
-    final String TAG = "DrawView";//For Logs
-    Paint paint;
-    ArrayList<Float> _x;
-    ArrayList<Float> _y;
-    public DrawView (Context context, ArrayList<Float> x, ArrayList<Float> y) {
-        super(context);
-        _x = x;
-        _y = y;
-        paint = new Paint();
-        paint.setColor(Color.BLUE);
-    }
-    public void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        int i = 0;
-        while (i < _x.size() - 1) {
-            Log.d(TAG, String.format("Drawing Line %d", i));
-            canvas.drawLine(_x.get(i), _y.get(i), _x.get(i + 1), _y.get(i + 1), paint);
-            i++;
-        }
     }
 }
