@@ -16,6 +16,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -23,57 +25,78 @@ public class MainActivity extends AppCompatActivity {
     TextView T;
     EditText E1, E2;
 
-    final String TAG = "MAIN";
-    final float threshy = 5f;
+    final String TAG = "MAIN";//For Logs
+    final float vibThresh = 6f;
     final int vibrateTime = 100;//ms
-    boolean touching;
     Vibrator vibrator;
-    HashMap<Float, Float> wave;
+    ArrayList<Float> xWave;
+    ArrayList<Float> yWave;
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        touching = false;
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        E1 = (EditText) findViewById(R.id.editText);
-        E2 = (EditText) findViewById(R.id.editText2);
-        T = (TextView)findViewById(R.id.textview);
-        T.setOnTouchListener(this::onTouch);//End OnTouchEvent()
+        E1 = findViewById(R.id.editText);
+        E2 = findViewById(R.id.editText2);
+        T = findViewById(R.id.textview);
+        T.setOnTouchListener(this::onTouch);
     }
 
     @SuppressLint({"DefaultLocale", "SetTextI18n"})
     private boolean onTouch(View v, MotionEvent event) {
         //https://developer.android.com/reference/android/view/MotionEvent
+        //OnRelease
         if (event.getAction() == MotionEvent.ACTION_UP) {
-            increaseResolution();
             drawLine();
+            increaseResolution();
         }
+        //OnTouch
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             T.setText(R.string.pressed);
-            wave = new HashMap<Float, Float>();
-            wave.put(0f, 0f);
+            //wave = new HashMap<Float, Float>();
+            //wave.put(0f, 0f);
+            xWave = new ArrayList<>();
+            yWave = new ArrayList<>();
         }
+        //OnMove
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            final float x = event.getX();
-            final float y = event.getY();
-            float diffX = 0;
-            float diffY = 0;
-            int sz = event.getHistorySize();
-            Log.d(TAG, String.valueOf(sz));
             //A motion event seems to have 0 - 4 coordinates in each.
-
-            //MakeShift: Only triggers if moving fast enough to record a few coordinates per event
-            if (sz > 1) {
-                float lX = event.getHistoricalX(sz - 1);
-                float lY = event.getHistoricalY(sz - 1);
-                diffX = x - lX;
-                diffY = y - lY;
-                Log.d(TAG,String.format("Diff X:Y -> %f:%f", diffX,diffY));
+            Float lastX = event.getX();
+            Float lastY = event.getY();
+            Float prevX = lastX;
+            Float prevY = lastY;
+            int waveSize = xWave.size();
+            if(waveSize > 0) {
+                prevX = xWave.get(waveSize - 1);
+                prevY = yWave.get(waveSize - 1);
             }
+            else {
+                prevX = lastX;
+                prevY = lastY;
+            }
+            float diffX = lastX - prevX;
+            //If drawing backtracks: Can't do this for sound waves.
+            if (diffX < 0) {
+                lastX = prevX;
+            }
+            //Save Everything
+            int sz = event.getHistorySize();
+            for(int i = 0; i < sz; i++) {
+                //If drawing backtracks: Can't do this for sound waves.
+                float x = event.getHistoricalX(i);
+                float y = event.getHistoricalY(i);
+                if (diffX < 0) {
+                    lastX = prevX;
+                }
+                xWave.add(event.getHistoricalX(i));
+                yWave.add(event.getHistoricalY(i));
+            }//Skips the last one; manually add the last one.
+            xWave.add(lastX);
+            yWave.add(lastY);
+
             //Vibrate if moving too fast
-            if (diffX > threshy) {
+            if (diffX > vibThresh) {
                 if (VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(vibrateTime, VibrationEffect.DEFAULT_AMPLITUDE));
                 } else {
@@ -81,19 +104,9 @@ public class MainActivity extends AppCompatActivity {
                     vibrator.vibrate(vibrateTime);
                 }
             }
-            //ToDo: if(x > lastX) -> use two individual vectors?
-            //https://www.javatpoint.com/collections-in-java
-            //Save Everything
-            for(int i = 0; i < event.getHistorySize(); i++) {
-                wave.put(event.getHistoricalX(i), event.getHistoricalY(i));
-            }//Skipped if only one
-            wave.put(x, y);//ensure at least one is added
 
-
-            //Copy log into text editor, save as csv, open in Excel, delete first column.
-            //Log.d(TAG, "," + x + "," + y);
-            E1.setText(Float.toString(x));
-            E2.setText(Float.toString(y));
+            E1.setText(Float.toString(lastX));
+            E2.setText(Float.toString(lastY));
             return true;
         }
 
@@ -102,31 +115,34 @@ public class MainActivity extends AppCompatActivity {
     void increaseResolution() {
         return;
     }
+    @SuppressLint("DefaultLocale")
     void drawLine() {
-        T.setText(String.format("%s%d", getString(R.string.touchToBegin), wave.size()));
-        DrawView dv = new DrawView(this, wave);
+        T.setText(String.format("%s%d", getString(R.string.touchToBegin), xWave.size()));
+        DrawView dv = new DrawView(this, xWave, yWave);
         dv.setBackgroundColor(Color.WHITE);
         setContentView(dv);
     }
 }
+//https://stackoverflow.com/questions/13851728/android-how-to-draw-on-view
 class DrawView extends View {
+    final String TAG = "DrawView";//For Logs
     Paint paint;
-    HashMap<Float, Float> _coords;
-    public DrawView (Context context, HashMap<Float, Float> coords) {
+    ArrayList<Float> _x;
+    ArrayList<Float> _y;
+    public DrawView (Context context, ArrayList<Float> x, ArrayList<Float> y) {
         super(context);
-        _coords = new HashMap<>(coords);
+        _x = x;
+        _y = y;
         paint = new Paint();
         paint.setColor(Color.BLUE);
     }
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        Set<Float> keys = _coords.keySet();
-        float[] lines = new float[keys.size() * 2];
-        int pos = 0;
-        for (Float i : keys) {
-            lines[pos++] = i;
-            lines[pos++] = _coords.get(i);
+        int i = 0;
+        while (i < _x.size() - 1) {
+            Log.d(TAG, String.format("Drawing Line %d", i));
+            canvas.drawLine(_x.get(i), _y.get(i), _x.get(i + 1), _y.get(i + 1), paint);
+            i++;
         }
-        canvas.drawLines(lines, paint);
     }
 }
