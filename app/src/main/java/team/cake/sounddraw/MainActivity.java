@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
                 main.removeView(findViewById(R.id.player));
             }
         });
-        btn.setText("           Go Back");
+        btn.setText("                Go Back");
         mainView.addView(btn, params);
 
         params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
