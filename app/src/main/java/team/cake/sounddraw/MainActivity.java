@@ -13,13 +13,18 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
+
+import static team.cake.sounddraw.R.id.myCanvas;
 
 public class MainActivity extends AppCompatActivity {
     TextView T;
@@ -31,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     Vibrator vibrator;
     ArrayList<Float> xWave;
     ArrayList<Float> yWave;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +149,45 @@ public class MainActivity extends AppCompatActivity {
         T.setText(String.format("%s%d", getString(R.string.touchToBegin), xWave.size()));
         DrawView dv = new DrawView(this, xWave, yWave);
         dv.setBackgroundColor(Color.WHITE);
-        setContentView(dv);
+        dv.setId(myCanvas);
+        RelativeLayout mainView = findViewById(R.id.mainView);
+        mainView.addView(dv);
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+        params.addRule(RelativeLayout.ALIGN_BOTTOM, RelativeLayout.TRUE);
+
+        Button btn = new Button(this);
+        btn.setLayoutParams(params);
+        btn.setId(R.id.reset);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ViewGroup main = findViewById(R.id.mainView);
+                main.removeView(findViewById(R.id.myCanvas));
+                main.removeView(findViewById(R.id.reset));
+                main.removeView(findViewById(R.id.player));
+            }
+        });
+        btn.setText("           Go Back");
+        mainView.addView(btn, params);
+
+        params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+        params.addRule(RelativeLayout.ALIGN_RIGHT, RelativeLayout.TRUE);
+        Button play = new Button(this);
+        play.setId(R.id.player);
+        play.setLayoutParams(params);
+        play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playSound();
+            }
+        });
+        play.setText("Play");
+        mainView.addView(play, params);
+    }
+    void playSound() {
+        Line2Buffer l2b = new Line2Buffer(xWave, yWave);
+        Thread thread = new Thread(l2b, "Converting Line to Buffer");
+        thread.start();
     }
 }
