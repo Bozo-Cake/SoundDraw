@@ -34,7 +34,7 @@ public class Line2Buffer implements Runnable {
         AudioTrack track = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
                 AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
                 sizeCount, AudioTrack.MODE_STATIC);
-        track.write();//finish
+        //track.write();//finish
         return track;
     }
 }
